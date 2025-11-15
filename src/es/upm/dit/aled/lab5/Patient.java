@@ -162,9 +162,62 @@ public class Patient extends Thread {
 	 * being attended at a location, the Patient must leave it. By doing this, the
 	 * Area knows that it must allow access to another Patient that was waiting.
 	 */
+	
+//	cada paciente debe:
+//
+//		1. Intentar entrar en el área actual usando enter()
+//
+//		2. Ser atendido (sleep(time))
+//
+//		3. Salir usando exit()
+//
+//		4. Moverse al siguiente area con Transfer (advanceProtocol())
+//
+//		5. Repetir hasta terminar su recorrido
+	
 	@Override
 	public void run() {
 		// TODO
+
+			
+			do {
+			    // Área actual en la que está el paciente: this.location;
+
+		        // 1) Intentar acceder a la ubicación actual (enter)
+		        this.location.enter(this);
+
+		        // 2) Ser atendido en la ubicación actual
+		        //    attendedAtLocation() "bloquea" al paciente el tiempo de ese area
+		        //    el tiempo necesario (sleep(time)).
+		        this.attendedAtLocation();
+
+		        // 3) Salir de la ubicación actual (exit)
+		        this.location.exit(this);
+
+		        // 4) Avanzar al siguiente paso del protocolo
+		        this.advanceProtocol();
+
+		        // 5) Repetir proceso mientras queden pasos en el protocolo
+		        
+			}while(indexProtocol<protocol.size());//Repetir el proceso hasta acabar la lista de tareas
+			
+			 // Cuando salimos del bucle, hemos hecho todos los Transfers,
+		    // y la location ahora es el ÚLTIMO área del recorrido del protocolo
+		    // Aún falta que el paciente sea atendido en esta última área:
+			
+			this.location.enter(this);
+			this.attendedAtLocation();	
+			this.location.exit(this);
+
+			 
+			EmergencyRoomGUI.getInstance().removePatient(this);
+			
+			//Trazas
+			System.out.println ("El paciente: "+this.number+" ha terminado de ser atendido en "+ this.location.getName());
+			
+		
+		}
+	
+
 	}
 
-}

@@ -39,8 +39,35 @@ public class Area {
 	 * @param capacity The number of Patients that can be treated at the same time.
 	 * @param position The location of the Area in the GUI.
 	 */
+//	Una Area es una sala del hospital.
+//	Y es UN RECURSO COMPARTIDO
+//	Todos los pacientes (hebras) entrarán y saldrán de ella → por tanto:
+
+	//	Area debe proteger sus atributos internos
+	//	Tiene que ser un monitor
+	//	Sus métodos deben ser synchronized
+	
+//ATRIBUTOS
+//	capacity
+//	→ cuántos pacientes pueden ser atendidos a la vez
+//
+//	numPatients
+//	→ cuántos están siendo atendidos AHORA
+//
+//	waiting
+//	→ cuántos están haciendo cola
+	
 	public Area(String name, int time, int capacity, Position2D position) {
 		// TODO
+	    this.name = name;          
+	    this.time = time;          // Tiempo que pasa un paciente en esta área
+	    this.capacity = capacity;  // Máximo de pacientes que se pueden estar a la vez (ser atendidos)
+	    this.position = position;  // Posición en la interfaz gráfica
+
+	    // Al principio no hay nadie dentro ni esperando
+	    this.numPatients = 0;
+	    this.waiting = 0;
+	    
 		this.color = Color.GRAY; // Default color
 	}
 
@@ -97,6 +124,27 @@ public class Area {
 	 * @param p The patient that wants to enter.
 	 */
 	// TODO: method enter
+	public synchronized void enter(Patient p) { //El notify lo hace el método salir que avisa para que entre
+	    // Mientras el área esté llena, no se puede entrar
+	    while (numPatients >= capacity) {
+
+	        // ESTE paciente pasa a la cola de espera
+	        waiting++;
+
+	        try {
+	            // ESTE espera hasta que haya notify()
+	            this.wait();
+	        } catch (InterruptedException e) {
+	        }
+
+	        // Cuando se despierta, deja de estar esperando (sale de la cola)
+	        waiting--;
+	        // Vuelve a la condición del while para ver si ahora sí hay sitio
+	    }
+
+	    // Si hemos salido del while, es que numPatients < capacity
+	    numPatients++;
+	}
 	
 	/**
 	 * Thread safe method that allows a Patient to exit the area. After the Patient
@@ -105,13 +153,28 @@ public class Area {
 	 * @param p The patient that wants to enter.
 	 */
 	// TODO method exit
+	public synchronized void exit(Patient p) {
+	    // ESTE paciente deja de ocupar plaza en el área
+	    numPatients--;
+
+	    // Avisamos a todos los que están esperando para que vuelvan a
+	    // comprobar la condición en su bucle while de enter()
+	    notifyAll();
+	}
+
 	
+	//GETTERS
+	//Los tres deben ser thread safe --> synchronized, 
+	//porque están accediendo a atributos compartidos (capacity, numPatients, waiting)
 	/**
 	 * Returns the capacity of the Area. This method must be thread safe.
 	 * 
 	 * @return The capacity.
 	 */
 	// TODO: method getCapacity
+	public synchronized int getCapacity() {
+	    return capacity;
+	}
 	
 	/**
 	 * Returns the current number of Patients being treated at the Area. This method must be thread safe.
@@ -119,6 +182,9 @@ public class Area {
 	 * @return The number of Patients being treated.
 	 */
 	// TODO: method getNumPatients
+	public synchronized int getNumPatients() {
+	    return numPatients;
+	}
 
 	/**
 	 * Returns the current number of Patients waiting to be treated at the Area. This method must be thread safe.
@@ -126,11 +192,14 @@ public class Area {
 	 * @return The number of Patients waiting to be treated.
 	 */
 	// TODO method getWaiting
-
+	public synchronized int getWaiting() {
+	    return waiting;
+	}
 	@Override
 	public int hashCode() {
 		return Objects.hash(name);
 	}
+	
 
 	@Override
 	public boolean equals(Object obj) {
